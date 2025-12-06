@@ -4903,7 +4903,7 @@ if (Player.debuff && Player.debuff.id === 'sloth_curse') {
     },
 
 checkDeath(reason) {
-const hasNecklace = Player.equipment.accessories.some(a => a && a.id === 'acc_dead');
+        const hasNecklace = Player.equipment.accessories.some(a => a && a.id === 'acc_dead');
         
         // 1. 【優先觸發】亡者項鍊
         // 只要有項鍊且還沒變鬼，就先變身 (最優先)
@@ -4916,14 +4916,12 @@ const hasNecklace = Player.equipment.accessories.some(a => a && a.id === 'acc_de
             return; // 這裡 return，因為已經變身了
         }
 
-        // 2. 【修改這裡】靈魂型態倒數
+        // 2. 靈魂型態倒數
         if (Player.ghostTurns > 0) {
             Player.ghostTurns--;
             if (Player.ghostTurns <= 0) {
-                // --- [FIX] 修改重點：靈魂消散後，不直接處死，而是「不 return」往下走 ---
                 this.showFloatingText("靈魂型態結束...", "gray");
-                // 讓程式繼續往下執行，去檢查有沒有羽毛或莉莉絲
-                // (注意：這裡移除原本的 this.playerDie 和 return)
+                // 讓程式繼續往下執行
             } else {
                 // 如果還有回合數，鎖血並 return
                 Player.hp = 1;
@@ -4933,6 +4931,7 @@ const hasNecklace = Player.equipment.accessories.some(a => a && a.id === 'acc_de
                 return; 
             }
         }        
+        
         // [NEW] 永生護符 (復活)
         const hasPhylactery = Player.equipment.accessories.some(a => a && a.id === 'acc_phylactery');
         if (hasPhylactery && Player.hp <= 0 && Player.souls >= 50) {
@@ -4945,51 +4944,57 @@ const hasNecklace = Player.equipment.accessories.some(a => a && a.id === 'acc_de
         }
 
         // 不死鳥羽毛邏輯
-    const featherIdx = Player.inventory.material.findIndex(i => i.id === 'phoenix_feather');
-    if (featherIdx !== -1) {
-        Player.inventory.material.splice(featherIdx, 1);
-        Player.hp = Math.floor(Player.maxHp * 0.5);
-        
-        this.renderEvent("🔥 浴火重生", "不死鳥的羽毛燃燒殆盡...", "你復活了並恢復 50% HP。<br>請重整態勢，準備繼續戰鬥。", "🦅");
-        
-        // 🔴 [修改重點] 這裡加入 && GameState.phase === 'combat' 的判斷
-        // 只有當「有敵人資料」且「當前處於戰鬥狀態」時，才允許 "resumeCombat"
-        if (GameState.currentEnemy && GameState.phase === 'combat') {
-            this.setButtons("重整態勢 (繼續)", "resumeCombat", "無", null, true);
-        } else {
-            // 如果是陷阱死亡 (phase 為 event_end)，則顯示倖存並前往下一個事件
-            this.setButtons("倖存 (繼續)", "nextEvent", "無", null, true);
-        }
-        
-        this.updateUI();
-        return;
-    }
+        const featherIdx = Player.inventory.material.findIndex(i => i.id === 'phoenix_feather');
+        if (featherIdx !== -1) {
+            Player.inventory.material.splice(featherIdx, 1);
+            Player.hp = Math.floor(Player.maxHp * 0.5);
+            
+            this.renderEvent("🔥 浴火重生", "不死鳥的羽毛燃燒殆盡...", "你復活了並恢復 50% HP。<br>請重整態勢，準備繼續戰鬥。", "🦅");
+            
+            // --- [FIX] 修復懶惰詛咒卡死問題 START ---
+            // 這裡強制把按鈕解鎖，否則如果是在懶惰詛咒下死亡，按鈕會是 disabled 狀態無法點擊
+            const btnMain = document.getElementById('btn-main');
+            if (btnMain) {
+                btnMain.disabled = false;
+                btnMain.style.opacity = "1";
+                btnMain.style.cursor = "pointer";
+            }
+            // --- [FIX] 修復懶惰詛咒卡死問題 END ---
 
-// --- [FIX] 莉莉絲獻祭事件 ---
+            // 只有當「有敵人資料」且「當前處於戰鬥狀態」時，才允許 "resumeCombat"
+            if (GameState.currentEnemy && GameState.phase === 'combat') {
+                this.setButtons("重整態勢 (繼續)", "resumeCombat", "無", null, true);
+            } else {
+                // 如果是陷阱死亡 (phase 為 event_end)，則顯示倖存並前往下一個事件
+                this.setButtons("倖存 (繼續)", "nextEvent", "無", null, true);
+            }
+            
+            this.updateUI();
+            return;
+        }
+
+        // 莉莉絲獻祭事件
         // 條件：打神 + 莉莉絲在場 + 莉莉絲還沒犧牲
         if (GameState.currentEnemy && GameState.currentEnemy.isGod && Player.lilithBlessing && !Player.lilithSacrificed) {
             
-            // 1. 標記犧牲 (永久防止再次觸發)
+            // 1. 標記犧牲
             Player.lilithSacrificed = true;
-            
-            // 2. 移除祝福狀態 (讓莉莉絲在 UI 上消失，但她的數值加成會保留到下一輪 recalc)
+            // 2. 移除祝福狀態
             Player.lilithBlessing = false; 
-
             // 3. 數值變更
             Player.lastInspirationTurns = 3; 
-            // Player.maxHp += 6666; // 這裡不需要加，因為會在 recalcStats() 中處理 (如果沒有其他配件，MaxHP會下降)
             Player.hp = Player.maxHp;        
             
             // 4. 削弱神
             const dmgToGod = Math.floor(GameState.currentEnemy.hp * 0.5);
             GameState.currentEnemy.hp -= dmgToGod;
-            // 5. 覆蓋七宗罪 DEBUFF (如果有的話)
+            
+            // 5. 覆蓋七宗罪 DEBUFF
             if (Player.debuff) {
                 Player.debuff = null;
                 this.showFloatingText("詛咒淨化", "#fff");
             }
             
-            // 重新計算 stats 以套用 MaxHP +6666
             this.recalcStats();
 
             // 6. 演出
@@ -5000,7 +5005,6 @@ const hasNecklace = Player.equipment.accessories.some(a => a && a.id === 'acc_de
                 神之代行者受到重創 (HP -50%)</span>`, 
                 "✨");
             
-            // [NEW] 檢查真誠成就
             this.checkAchievements();
             
             this.setButtons("帶著她的份戰鬥 (繼續)", "resumeCombat", "無", null, true);
