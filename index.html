@@ -746,7 +746,7 @@ const CONFIG = {
         { name: "鮮血伯爵", weight: 4, baseGold: 800, icon: "🧛", hp: 24000, atk: 1200, drop: "鮮血精華", tier: "boss" },
         { name: "巫妖王", weight: 4, baseGold: 900, icon: "💀", hp: 20000, atk: 1400, drop: "命匣碎片", tier: "boss" },
         { name: "深淵魔龍", weight: 2, baseGold: 2000, icon: "🐲", hp: 60000, atk: 2000, drop: "魔龍逆鱗", tier: "boss" },
-        { name: "舊日支配者", weight: 0.1, baseGold: 9999, icon: "🐙", hp: 99999, atk: 9999, drop: "不可名狀之物", tier: "boss", isOldOne: true }
+        { name: "舊日支配者", weight: 0.5, baseGold: 9999, icon: "🐙", hp: 99999, atk: 9999, drop: "不可名狀之物", tier: "boss", isOldOne: true }
     ],
     // 煉獄神話裝備
     infernoItems: [
@@ -1875,20 +1875,21 @@ triggerCombatWithEnemy(enemyData, canFlee) {
         this.setButtons("戰鬥", "combatRound", "逃跑", "flee", forceNoFlee);
 
         // 懶惰詛咒邏輯
-        if (Player.debuff && Player.debuff.id === 'sloth_curse') {
-            const btnMain = document.getElementById('btn-main'); 
-            const btnSub = document.getElementById('btn-sub');   
-            btnMain.disabled = true;
-            btnMain.innerText = "💤 懶惰 (無法攻擊)";
-            btnMain.style.opacity = "0.6";
-            btnMain.style.cursor = "not-allowed";
-            btnSub.disabled = false;
-            btnSub.innerText = "逃跑";
-        } else {
-            document.getElementById('btn-main').disabled = false;
-            document.getElementById('btn-main').style.opacity = "1";
-            document.getElementById('btn-main').style.cursor = "pointer";
-        }
+        if (Player.debuff && Player.debuff.id === 'sloth_curse' && Player.ghostTurns === 0) {
+    const btnMain = document.getElementById('btn-main'); 
+    const btnSub = document.getElementById('btn-sub');   
+    btnMain.disabled = true;
+    btnMain.innerText = "💤 懶惰 (無法攻擊)";
+    btnMain.style.opacity = "0.6";
+    btnMain.style.cursor = "not-allowed";
+    btnSub.disabled = false;
+    btnSub.innerText = "逃跑";
+} else {
+    // 正常情況或是靈魂型態下，開啟攻擊按鈕
+    document.getElementById('btn-main').disabled = false;
+    document.getElementById('btn-main').style.opacity = "1";
+    document.getElementById('btn-main').style.cursor = "pointer";
+}
     },
 
 checkSinCollection() {
@@ -2959,12 +2960,12 @@ combatRound() {
         // --- 玩家攻擊階段 ---
         
         let skipPlayerTurn = false;
-        if (Player.debuff && Player.debuff.id === 'sloth_curse' && enemy.hp === enemy.maxHp) { 
-            skipPlayerTurn = true;
-            logHtml += "<span style='color:grey'>💤 因懶惰而無法行動...</span><br>";
-        }
+        if (Player.debuff && Player.debuff.id === 'sloth_curse' && enemy.hp === enemy.maxHp && Player.ghostTurns === 0) { 
+    skipPlayerTurn = true;
+    logHtml += "<span style='color:grey'>💤 因懶惰而無法行動...</span><br>";
+}
 
-        if (!skipPlayerTurn) {
+if (!skipPlayerTurn) {
             // [飾品效果區塊省略，保持原樣...]
             if (Player.equipment.accessories.some(a => a && a.id === 'acc_envy') && Math.random() < 0.10) {
                  Player.hp = Player.maxHp;
@@ -5783,6 +5784,7 @@ Game.init();
 </script>
 </body>
 </html>
+
 
 
 
