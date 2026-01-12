@@ -3697,6 +3697,10 @@
                     this.openPortableCrafting('celestial');
                 },
 
+                triggerInfernoCombat() {
+                    this.triggerCombat();
+                },
+
                 renderForgeUI() {
                     const area = document.getElementById('crafting-area');
                     area.innerHTML = "";
@@ -6905,6 +6909,33 @@
                         };
 
                         this.triggerCombatWithEnemy(enemy, tier !== 'boss');
+                        return;
+                        this.triggerCombatWithEnemy(enemy, tier !== 'boss');
+                        return;
+                    }
+
+                    if (Player.inInferno) {
+                        let totalWeight = CONFIG.infernoMonsters.reduce((acc, m) => acc + m.weight, 0);
+                        let r = Math.random() * totalWeight;
+                        let enemyTemplate = CONFIG.infernoMonsters[0];
+                        for (let m of CONFIG.infernoMonsters) {
+                            if (r < m.weight) {
+                                enemyTemplate = m;
+                                break;
+                            }
+                            r -= m.weight;
+                        }
+
+                        let enemy = {
+                            ...enemyTemplate,
+                            maxHp: enemyTemplate.hp,
+                            hp: enemyTemplate.hp,
+                            atk: enemyTemplate.atk,
+                            tier: enemyTemplate.tier || "normal",
+                            special: enemyTemplate.special
+                        };
+
+                        this.triggerCombatWithEnemy(enemy, enemy.tier !== 'boss');
                         return;
                     }
 
