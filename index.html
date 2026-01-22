@@ -2030,6 +2030,11 @@
                     demon_enhance: { id: 'demon_enhance', name: '🔥 惡魔的強化', type: 'demon', desc: '雙方致命一擊機率變為 50%' },
                     demon_wager: { id: 'demon_wager', name: '🎲 惡魔的賭約', type: 'demon', desc: '逃跑率80%，但每次逃跑有1%機率直接死亡' }
                 },
+                sinBuffs: {
+                    sloth_curse: { id: 'sloth_curse', name: '💤 懶惰的詛咒', type: 'debuff', desc: '無法逃跑，且每回合攻擊力下降 10%' },
+                    greed_shackle: { id: 'greed_shackle', name: '💰 黃金枷鎖', type: 'debuff', desc: '受到的傷害 +20%' },
+                    lust_charm: { id: 'lust_charm', name: '💋 媚氣', type: 'debuff', desc: '每層扣除 10% 最大生命' }
+                },
                 monsters: [
                     { name: "史萊姆", weight: 13.5, baseGold: 1, icon: "🦠", hp: 20, atk: 3, drop: "史萊姆黏液", eliteDrop: "史萊姆精華", bossDrop: "史萊姆王冠" },
                     { name: "哥布林", weight: 13.5, baseGold: 2, icon: "👺", hp: 35, atk: 5, drop: "破布", eliteDrop: "哥布林耳環", bossDrop: "哥布林金牙" },
@@ -2856,7 +2861,7 @@
 
                     // --- [FIX] 原罪之冠強化邏輯修正 ---
                     const hasCrown = Player.inventory.material.some(i => i.name === "原罪之冠");
-                    if (hasCrown && !enemyData.isGod && !enemyData.isTrueForm && !enemyData.name.includes("原初") && !enemyData.isSin && !enemyData.isGardenBoss) {
+                    if (hasCrown && Player.inInferno && !enemyData.isGod && !enemyData.isTrueForm && !enemyData.name.includes("原初") && !enemyData.isSin && !enemyData.isGardenBoss) {
                         enemyData.name = "原初 " + enemyData.name;
                         enemyData.hp *= 2;
                         enemyData.atk *= 2;
@@ -3676,7 +3681,7 @@
                     this.renderForgeUI();
                 },
 
-                triggerCelestialForge() {
+                triggerSanctuaryForge() {
                     this.openPortableCrafting('celestial');
                 },
 
