@@ -3375,6 +3375,26 @@
                     this.updateUI();
                 },
 
+                triggerInfernoCombat() {
+                    let totalWeight = 0;
+                    CONFIG.infernoMonsters.forEach(m => totalWeight += m.weight);
+
+                    let random = Math.random() * totalWeight;
+                    let selected = null;
+
+                    for (let m of CONFIG.infernoMonsters) {
+                        if (random < m.weight) {
+                            selected = Object.assign({}, m);
+                            break;
+                        }
+                        random -= m.weight;
+                    }
+
+                    if (!selected) selected = Object.assign({}, CONFIG.infernoMonsters[0]);
+
+                    this.triggerCombatWithEnemy(selected, true);
+                },
+
                 showLilith() {
                     const iconEl = document.getElementById('event-icon');
                     iconEl.innerHTML = LILITH_HTML;
