@@ -7846,9 +7846,9 @@
                             Player.sinPoints = 0;
                             Player.sanctityPoints = 0;
                             Player.inInferno = false; // [NEW] 確保不在煉獄模式
-                            // Player.depth = 0; // 重置層數 (已在前面討論過，如下)
-                            // 這裡選擇保留層數，但進入特殊模式
-
+                            // 修正：進入天界需要重置層數以避免難度爆炸
+                            Player.depth = 0; 
+                            
                             // 2. 清除 Buff/Debuff
                             Player.buff = null;
                             Player.debuff = null;
@@ -8180,7 +8180,8 @@
                     // ------------------
 
                     if (GameState.phase !== 'merchant' && GameState.phase !== 'demon_merchant') document.getElementById('merchant-area').classList.add('hidden');
-                    if (GameState.phase !== 'crafting') document.getElementById('crafting-area').classList.add('hidden');
+                    // [FIX] 聖光鍛造所介面顯示問題，加入 celestial_forge 條件
+                    if (GameState.phase !== 'crafting' && GameState.phase !== 'celestial_forge') document.getElementById('crafting-area').classList.add('hidden');
                 },
                 setButtons(mainText, mainAction, subText, subAction, disableSub) {
                     const b1 = document.getElementById('btn-main');
@@ -8566,4 +8567,5 @@
 </body>
 
 </html>
+
 
