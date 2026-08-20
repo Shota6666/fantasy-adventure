@@ -3701,10 +3701,6 @@
                     this.renderForgeUI();
                 },
 
-                triggerSanctuaryForge() {
-                    this.openPortableCrafting('celestial');
-                },
-
                 renderForgeUI() {
                     const area = document.getElementById('crafting-area');
                     area.innerHTML = "";
@@ -3772,80 +3768,6 @@
                     this.renderForgeUI(); // 更新介面顯示熄滅狀態
                     this.updateUI();
                     this.checkAchievements(); // 檢查神話鍛造師成就
-                },
-
-                openPortableCrafting(mode) {
-                    if (mode === 'celestial') {
-                        GameState.phase = "celestial_forge";
-                        this.renderCelestialForgeUI();
-                    }
-                },
-
-                renderCelestialForgeUI() {
-                    const area = document.getElementById('crafting-area');
-                    area.innerHTML = "";
-                    area.classList.remove('hidden');
-
-                    let html = "<h4>⚡ 聖光鍛造所</h4><div class='craft-grid'>";
-
-                    if (CONFIG.celestialForgeItems) {
-                        CONFIG.celestialForgeItems.forEach(item => {
-                            let canCraft = true;
-                            let reqHtml = "";
-
-                            // Support Array recipes
-                            const recipes = Array.isArray(item.recipe) ? item.recipe : [item.recipe];
-
-                            recipes.forEach(r => {
-                                const owned = Player.inventory.material.filter(m => m.name === r.mat).length;
-                                if (owned < r.count) canCraft = false;
-                                reqHtml += `<div class='req-item ${owned >= r.count ? 'ok' : 'no'}'>${r.mat} ${owned}/${r.count}</div>`;
-                            });
-
-                            const statusClass = canCraft ? 'ok' : 'no';
-
-                            html += `<div class="craft-item" onclick="Game.craftCelestialItem('${item.id}')">
-                                <div class="m-top"><span>${item.icon} ${item.name}</span></div>
-                                <div class="craft-reqs">${reqHtml}</div>
-                                ${canCraft ? "<div class='craft-btn'>鍛造</div>" : ""}
-                            </div>`;
-                        });
-                    }
-                    html += "</div>";
-                    area.innerHTML = html;
-                },
-
-                craftCelestialItem(itemId) {
-                    if (GameState.phase !== "celestial_forge") return;
-
-                    const itemTemplate = CONFIG.celestialForgeItems.find(i => i.id === itemId);
-                    if (!itemTemplate) return;
-
-                    const recipes = Array.isArray(itemTemplate.recipe) ? itemTemplate.recipe : [itemTemplate.recipe];
-                    let canCraft = true;
-
-                    recipes.forEach(r => {
-                        const owned = Player.inventory.material.filter(m => m.name === r.mat).length;
-                        if (owned < r.count) canCraft = false;
-                    });
-
-                    if (!canCraft) {
-                        alert("素材不足！");
-                        return;
-                    }
-
-                    // Deduct materials
-                    recipes.forEach(r => {
-                        for (let i = 0; i < r.count; i++) {
-                            this.removeSpecificItem(r.mat);
-                        }
-                    });
-
-                    this.addItemToInventory(Object.assign({}, itemTemplate));
-                    this.showFloatingText("神話具現!", "#00e5ff");
-                    this.renderCelestialForgeUI();
-                    this.updateUI();
-                    this.checkAchievements();
                 },
 
                 triggerInfernoGate() {
@@ -6957,157 +6879,107 @@
                 // 4. 聖光鍛造所 (類似煉獄工作坊，但用天界素材)
                 triggerSanctuaryForge() {
                     GameState.phase = "event_end";
+                    this.triggerAnim('event-icon', 'anim-spawn');
                     this.renderEvent("⚒️ 聖光鍛造所",
                         "你來到了一座懸浮於雲端的純白平台。這裡沒有鐵匠，只有無數閃耀著金色符文的**靈能重錘**，正有節奏地敲擊著虛空中的光輝。",
                         "平台中央有一座幾何形狀的能量矩陣，似乎可以將天界的物質重組為強大的裝備。", "🏗️");
 
                     this.setButtons("合成裝備", "openCelestialForge", "離開", "nextEvent", false);
+                    this.updateUI();
                 },
                 openCelestialForge() {
-                    // 這裡我們需要一個類似 renderCraftingUI 的介面，但是專屬於天界
-                    // 為了簡化，我們可以直接複用 renderCraftingUI 邏輯，但傳入天界配方
-                    // 或者切換到一個新的 phase = 'celestial_forge'
                     GameState.phase = "celestial_forge";
-
-                    // 我們需要定義天界配方 (目前還沒有定義，先使用天界素材製作隨機物品?)
-                    // 根據 User Request，這裡應該是 "打開合成列表"。
-                    // 由於目前 CONFIG.forgeItems 都是煉獄的，我們暫時顯示 "尚未開放" 或者如果有天界配方則顯示。
-                    // 假設我們需要讓玩家製作【天界裝備】，我們可以臨時加幾個配方進去，或者只顯示界面。
-
-                    // 暫時复用 Crafting UI 邏輯，但過濾列表
+                    this.setButtons("離開", "nextEvent", "無", null, true);
                     this.renderCelestialForgeUI();
+                    this.updateUI();
                 },
                 renderCelestialForgeUI() {
-                    this.renderCelestialForgeUI_Impl();
-                },
-                renderCelestialForgeUI_Impl() {
-                    const modal = document.getElementById('crafting-area');
-                    modal.classList.remove('hidden');
-                    const list = document.getElementById('crafting-list');
-                    list.innerHTML = "";
+                    const area = document.getElementById('crafting-area');
+                    if (!area) return;
+                    area.innerHTML = "";
+                    area.classList.remove('hidden');
 
-                    CONFIG.celestialForgeItems.forEach(item => {
-                        let recipeHtml = `<div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:5px;">`;
-                        let canCraft = true;
+                    let html = "<h4 style='color:#00e5ff; margin-bottom:8px;'>⚡ 聖光鍛造所 (點擊合成)</h4><div class='craft-grid'>";
 
-                        item.recipe.forEach(req => {
-                            const ownedCount = Player.inventory.material.filter(m => m.name === req.mat).length;
-                            const hasEnough = ownedCount >= req.count;
-                            if (!hasEnough) canCraft = false;
+                    if (CONFIG.celestialForgeItems) {
+                        CONFIG.celestialForgeItems.forEach(item => {
+                            let canCraft = true;
+                            let reqHtml = "";
 
-                            recipeHtml += `<span style="font-size:0.8em; padding:2px 5px; border-radius:3px; background:${hasEnough ? '#1b5e20' : '#b71c1c'}; color:white;">
-                                ${req.mat} (${ownedCount}/${req.count})
-                            </span>`;
+                            const recipes = Array.isArray(item.recipe) ? item.recipe : [item.recipe];
+
+                            recipes.forEach(r => {
+                                const owned = Player.inventory.material.filter(m => m.name === r.mat).length;
+                                if (owned < r.count) canCraft = false;
+                                const statusClass = owned >= r.count ? 'ok' : 'no';
+                                reqHtml += `<div class="craft-req ${statusClass}">需: ${r.mat} (${owned}/${r.count})</div>`;
+                            });
+
+                            let sanctityHtml = "";
+                            if (item.sanctity) {
+                                const curSanctity = Player.sanctity || 0;
+                                const sanctOk = curSanctity >= item.sanctity;
+                                sanctityHtml = `<div style="font-size:0.75em; color:${sanctOk ? '#ffeb3b' : '#ff9800'}; margin-top:2px;">(需求: 聖潔 ${item.sanctity}${sanctOk ? '' : ' ⚠️未達'})</div>`;
+                            }
+
+                            const rarityClass = item.rarity === 'active' ? 'rarity-active' : ('rarity-' + item.rarity);
+
+                            html += `<div class="craft-item" onclick="Game.craftCelestialItem('${item.id}')" style="border: 1px solid #00e5ff; background: rgba(0, 229, 255, 0.05);">
+                                <div class="m-top">
+                                    <span style="color:#00e5ff">${item.icon} ${item.name}</span>
+                                    <span class="${rarityClass}" style="font-size:0.8em;">${item.type.toUpperCase()}</span>
+                                </div>
+                                <div class="m-desc" style="font-size:0.8em; color:#ccc; margin:4px 0;">${item.desc}</div>
+                                ${sanctityHtml}
+                                ${reqHtml}
+                                <div style="font-size:0.75em; color:${canCraft ? '#4caf50' : '#888'}; margin-top:4px; font-weight:bold;">
+                                    ${canCraft ? "✨ 點擊鍛造" : "❌ 素材不足"}
+                                </div>
+                            </div>`;
                         });
-                        recipeHtml += `</div>`;
-
-                        let reqHtml = "";
-                        if (item.sanctity) {
-                            reqHtml += `<div style="font-size:0.8em; color:#ffeb3b; margin-top:2px;">(裝備需求: 聖潔 ${item.sanctity})</div>`;
-                        }
-
-                        const div = document.createElement('div');
-                        div.className = "craft-item";
-                        div.style.background = "linear-gradient(45deg, #222, #333)";
-                        div.style.border = "1px solid #ffd700";
-
-                        div.innerHTML = `
-                            <div class="m-top" style="display:flex; justify-content:space-between; align-items:center;">
-                                <span>${item.icon} ${item.name}</span>
-                                <span class="${item.rarity === 'active' ? 'rarity-active' : 'rarity-' + item.rarity}" style="font-size:0.8em;">${item.type.toUpperCase()}</span>
-                            </div>
-                            <div class="m-desc" style="font-size:0.85em; color:#ccc; margin:5px 0;">${item.desc}</div>
-                            ${reqHtml}
-                            ${recipeHtml}
-                            <button onclick="Game.craftCelestialItem('${item.id}')" style="width:100%; margin-top:5px; padding:5px; background:${canCraft ? '#ffd700' : '#555'}; color:${canCraft ? 'black' : '#888'}; border:none; border-radius:4px; font-weight:bold; cursor:${canCraft ? 'pointer' : 'not-allowed'}" ${canCraft ? '' : 'disabled'}>
-                                ${canCraft ? '鍛造' : '素材不足'}
-                            </button>
-                        `;
-                        list.appendChild(div);
-                    });
-
-                    document.getElementById('crafting-close-btn').onclick = () => {
-                        modal.classList.add('hidden');
-                        Game.nextEvent();
-                    };
-                },
-                renderCelestialForgeUI_Deprecated() {
-                    // 這裡是一個簡化的 Crafting UI
-                    const modal = document.getElementById('crafting-area'); // 借用 crafting-area
-                    modal.classList.remove('hidden');
-                    const list = document.getElementById('crafting-list');
-                    list.innerHTML = "";
-
-                    // 這裡定義臨時的天界配方 (或未來擴充)
-                    // 範例： 5 個 天使之羽 -> 1 個 隨機稀有道具
-                    // 為了現在有東西玩，我們加一個簡單的轉換
-                    const recipes = [
-                        { name: "隨機天界飾品", cost: { mat: "天使之羽", count: 5 }, result: "random_celestial_acc", desc: "隨機獲得一個天界飾品" },
-                        // 可以在這裡擴充更多
-                    ];
-
-                    recipes.forEach((recipe, idx) => {
-                        const div = document.createElement('div');
-                        div.className = 'craft-item';
-                        // Check cost
-                        const hasMat = Player.inventory.material.filter(i => i.name === recipe.cost.mat).length;
-                        const canCraft = hasMat >= recipe.cost.count;
-
-                        div.innerHTML = `
-                            <div class="c-name">${recipe.name}</div>
-                            <div class="c-cost">${recipe.cost.mat} (${hasMat}/${recipe.cost.count})</div>
-                            <button ${canCraft ? '' : 'disabled'} onclick="Game.craftCelestialItem(${idx})">鍛造</button>
-                         `;
-                        list.appendChild(div);
-                    });
-
-                    document.getElementById('crafting-close-btn').onclick = () => {
-                        modal.classList.add('hidden');
-                        Game.nextEvent();
-                    };
+                    }
+                    html += "</div>";
+                    area.innerHTML = html;
                 },
                 craftCelestialItem(itemId) {
+                    if (GameState.phase !== "celestial_forge") return;
+
                     const itemTemplate = CONFIG.celestialForgeItems.find(i => i.id === itemId);
                     if (!itemTemplate) return;
 
-                    // 1. 檢查素材
-                    let missing = false;
-                    itemTemplate.recipe.forEach(req => {
-                        const count = Player.inventory.material.filter(m => m.name === req.mat).length;
-                        if (count < req.count) missing = true;
-                    });
+                    const recipes = Array.isArray(itemTemplate.recipe) ? itemTemplate.recipe : [itemTemplate.recipe];
 
-                    if (missing) {
-                        alert("素材不足！");
-                        return;
+                    // 1. 檢查素材
+                    for (let req of recipes) {
+                        const count = Player.inventory.material.filter(m => m.name === req.mat).length;
+                        if (count < req.count) {
+                            alert(`素材不足！缺少 ${req.mat} (需要 ${req.count}，擁有 ${count})`);
+                            return;
+                        }
                     }
 
-                    if (!confirm(`確定要製作 ${itemTemplate.name} 嗎？`)) return;
-
                     // 2. 消耗素材
-                    itemTemplate.recipe.forEach(req => {
+                    for (let req of recipes) {
                         let needed = req.count;
-                        // 從背包移除
                         for (let i = Player.inventory.material.length - 1; i >= 0; i--) {
                             if (Player.inventory.material[i].name === req.mat && needed > 0) {
                                 Player.inventory.material.splice(i, 1);
                                 needed--;
                             }
                         }
-                    });
+                    }
 
                     // 3. 給予物品
                     const newItem = { ...itemTemplate };
-                    delete newItem.recipe; // 移除配方引用
-                    if (newItem.sanctity) delete newItem.sanctity; // 移除需求標記
-
                     this.addItemToInventory(newItem);
 
                     // 4. 演出與更新
                     this.triggerAnim('crafting-area', 'anim-spawn');
-                    this.showFloatingText("鍛造成功!", "#ffff00");
-                    this.renderCelestialForgeUI(); // 重新渲染 (更新素材數量)
+                    this.showFloatingText("神話具現!", "#00e5ff");
+                    this.log(`在聖光鍛造所打造了 ${newItem.name}`);
+                    this.renderCelestialForgeUI();
                     this.updateUI();
+                    this.checkAchievements();
                 },
 
                 triggerCombat(isForcedBoss, checkTrueForm) {
